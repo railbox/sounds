@@ -1,0 +1,6 @@
+converters/**/*.ogg
+converters/**/*.wav
+*.mmd
+converters/mmd/build
+converters/mmd/mmd.spec
+converters/mmd/dist/
