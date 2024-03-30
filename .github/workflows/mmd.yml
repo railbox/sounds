@@ -1,0 +1,30 @@
+name: MMD test
+
+on: [push]
+
+jobs:
+  mmd-run:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: ${{ 3.9 }}
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install pylint pydub
+    - uses: FedericoCarboni/setup-ffmpeg@v3
+    - name: Parse test file
+      working-directory: converters/mmd/tests
+      run: python ../mmd.py sounds adpcm test_loco.mmd
+    - name: Check output
+      working-directory: converters/mmd/test_loco
+      run: |
+        test -f "F1_LOOP_S1_tractionmotor_T10000.wav"
+        test -f "F24_LOOP_pantographdown_ENG_T10000.wav"
+        test -f "F17_ON_compressor.wav"
+        test -f "F17_OFF_compressor.wav"
+        test -f "F17_LOOP_compressor_T10000.wav"
+        test -f "F21_LOOP_sand_T10000.wav"

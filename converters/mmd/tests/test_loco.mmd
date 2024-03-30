@@ -1,0 +1,16 @@
+
+sounds:
+tractionmotor: {
+ amplitudeoffset: 0.3
+ amplitudefactor: 0.29
+ frequencyfactor: 0.30
+ range: 130
+ crossfade: 95
+ sound1: test.wav pitch1: 1
+}
+include [ horn_set1.inc ] end 
+compressor: { soundset: [ test.wav|test.wav|test.wav] range: 120 placement: custom } 
+pantographdown: { soundmain: test.wav placement: engine } 
+sand: test.wav test.wav test.wav 15 
+compressor: { amplitudefactor: 0.5 placement: external range: 30 soundbegin: test.wav soundmain: test.wav soundend: test.wav }
+endsounds 
