@@ -9,8 +9,10 @@ from pydub import AudioSegment
 sound_pattern = r'sound(\d+|begin|end|main):\s*([^\s]+)'
 block_pattern = r'([\w-]+):\s*\{([^}]+)\}'
 old_pattern = r'([\w-]+): ([^:|]+?) ([^:|]+?) ([^:|]+?) '
-soundset_pattern = r'soundset:\s*\[ (.*) \]'
-include_pattern = r'include\s*\[ (.*) ]\s*end'
+soundset_pattern = r'soundset:\s*\[ (.*?) \]'
+include_pattern = r'include\s*\[ (.*?) \]'
+include_pattern2 = r'include ([^\[\]]*?) end'
+comment_pattern = re.compile(r'//.*')
 
 function_ids = {
     "tractionmotor": 1,
@@ -119,8 +121,27 @@ def process_file(original_path, output_path, otype):
     else:
         output_audio.export(output_path, format="ogg", parameters=["-ar", str(32000)])
 
+def load_include(file_name, data):
+    try:
+        with open(file_name, 'r', encoding="utf-8", errors='ignore') as file:
+            if isinstance(data, list):
+                for line in file:
+                    data.append(line.rstrip())
+            else:
+                for line in file:
+                    data += line
+    except FileNotFoundError:
+        pass
+    except UnicodeDecodeError as e:
+        print(f"Error decoding file {file_name}: {e}")
+    except PermissionError as e:
+        print(f"Permission error accessing file {file_name}: {e}")
+
+    return data
+
 def parse_mmd(path, otype, sounds_path, output_path):
     # pylint: disable=R0912, R0914, R0915
+    full_data = []
     data = ""
 
     shutil.rmtree(output_path)
@@ -128,36 +149,47 @@ def parse_mmd(path, otype, sounds_path, output_path):
 
     #Capture sounds: section
     inside_sounds_section = False
+    inside_include = False
     with open(path, 'r', encoding="utf-8") as file:
         for line in file:
-            if "sounds:" in line:
-                inside_sounds_section = True
-                continue
+            # Remove any comments
+            line = comment_pattern.sub('', line).strip()
+            if "include " in line:
+                inside_include = True
+            if inside_include and "end" in line:
+                inside_include = False
+                if not "include " in line:
+                    continue
+            if inside_include:
+                inc_split = line.split()
+                for inc in inc_split:
+                    if not "include" in inc:
+                        full_data = load_include(inc, full_data)
+            else:
+                full_data.append(line+"\n")
 
-            if "endsounds" in line:
-                inside_sounds_section = False
+    for line in full_data:
+        if "sounds:" in line:
+            inside_sounds_section = True
+            continue
 
-            if inside_sounds_section:
-                data += line
-            #Add additional blocks outside of sounds
-            if "ignition:" in line:
-                data += line
+        if "endsounds" in line:
+            inside_sounds_section = False
+
+        if inside_sounds_section:
+            data += line
+        #Add additional blocks outside of sounds
+        if "ignition:" in line:
+            data += line
 
     #Load includes #############################################################
-    include_matches = re.search(include_pattern, data, re.DOTALL)
-    if include_matches:
-        include_list = include_matches.group(1).split(' ')
+    for match in re.finditer(include_pattern, data, re.DOTALL):
+        include_list = match.group(1).split(' ')
         for item in include_list:
-            try:
-                with open(item, 'r', encoding="utf-8") as file:
-                    content = file.read()
-                    data += content
-            except FileNotFoundError:
-                pass
-            except UnicodeDecodeError as e:
-                print(f"Error decoding file {item}: {e}")
-            except PermissionError as e:
-                print(f"Permission error accessing file {item}: {e}")
+            data = load_include(item, data)
+    for match in re.finditer(include_pattern2, data, re.DOTALL):
+        inc_file = match.group(1)
+        data = load_include(inc_file, data)
 
     #Parse data ################################################################
     for match in re.finditer(block_pattern, data):
@@ -199,7 +231,10 @@ def parse_mmd(path, otype, sounds_path, output_path):
             set_list = set_matches.group(1).split(',')
             for items in set_list:
                 item_list = items.replace(' ', '').split('|')
-                parse_item(block_name, 'main', item_list[1], item_list[0], item_list[2])
+                if len(item_list) >= 3:
+                    parse_item(block_name, 'main', item_list[1], item_list[0], item_list[2])
+                else:
+                    print(set_matches.group(1))
 
     for match in re.finditer(old_pattern, data):
         block_name = match.group(1)
