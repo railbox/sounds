@@ -18,11 +18,12 @@ function_ids = {
     "ventilator": 4,
 
     "ignition": 1,
-    "brake": 1, #STOP??? or 14
-    "unbrake": 1, #START??? or 14
+    "brake": 1,
+    "unbrake": 1,
 
     "horn1": 2,
     "horn2": 3,
+    "horn3": 5,
     "curve": 13,
     "compressor": 17,
     "small-compressor": 19,
@@ -43,6 +44,7 @@ max_values = {
 
 block_type = {
     "ignition": "ON",
+    "brake": "STOP",
     "unbrake": "START",
     "pantographup": "ON",
     "pantographdown": "OFF"
