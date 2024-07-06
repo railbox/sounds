@@ -1,6 +1,9 @@
-name: MMD test
+name: "MMD test"
 
-on: [push]
+on:
+  push:
+    paths:
+    - converters/mmd/**
 
 jobs:
   mmd-run:

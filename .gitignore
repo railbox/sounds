@@ -1,6 +1,10 @@
 converters/**/*.ogg
 converters/**/*.wav
 *.mmd
+*.zpp
 converters/mmd/build
 converters/mmd/mmd.spec
 converters/mmd/dist/
+converters/zpp/dist/
+converters/zpp/build
+converters/zpp/zpp.spec
