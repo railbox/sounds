@@ -15,8 +15,8 @@ include_pattern2 = r'include ([^\[\]]*?) end'
 comment_pattern = re.compile(r'//.*')
 
 function_ids = {
-    "tractionmotor": 1,
-    "engine": 4,
+    "tractionmotor": 57,
+    "engine": 1,
     "ventilator": 4,
 
     "ignition": 1,
@@ -30,7 +30,7 @@ function_ids = {
     "compressor": 17,
     "small-compressor": 19,
     "oilpump": 19,
-    #"converter": -1, ???
+    "converter": 59,
     "pantographup": 24,
     "pantographdown": 24,
     "sand": 21,
@@ -64,6 +64,7 @@ class Item:
 database = {}
 crossfades = {}
 placements = {}
+blockStartValue = {}
 
 def replace_extension(filename):
     if not filename:
@@ -79,6 +80,11 @@ def parse_item(block_name, type_value, file_name, on_file_name="", off_file_name
         block_db = []
     max_value = max_values.get(block_name, 100)
 
+    startValue = blockStartValue.get(block_name, None)
+    if startValue is None:
+        blockStartValue[block_name] = type_value
+        startValue = type_value
+
     file_name = replace_extension(file_name)
     on_file_name = replace_extension(on_file_name)
     off_file_name = replace_extension(off_file_name)
@@ -88,7 +94,8 @@ def parse_item(block_name, type_value, file_name, on_file_name="", off_file_name
             return
         block_db.append(Item(None, file_name, on_file_name, off_file_name))
     else:
-        orig_value = int(type_value)
+        max_value -= int(startValue)
+        orig_value = int(type_value) - int(startValue)
         value = int((orig_value * 100 + max_value / 2) / max_value)
         if orig_value != 0 and value == 0:
             value = 1
@@ -154,11 +161,11 @@ def parse_mmd(path, otype, sounds_path, output_path):
         for line in file:
             # Remove any comments
             line = comment_pattern.sub('', line).strip()
-            if "include " in line:
+            if "include" in line:
                 inside_include = True
             if inside_include and "end" in line:
                 inside_include = False
-                if not "include " in line:
+                if not "include" in line:
                     continue
             if inside_include:
                 inc_split = line.split()
@@ -244,10 +251,7 @@ def parse_mmd(path, otype, sounds_path, output_path):
         file1 = match.group(2)
         file2 = match.group(3)
         file3 = match.group(4)
-        if "ogg" in file2:
-            parse_item(block_name, 'main', file2, file1, file3)
-        else:
-            parse_item(block_name, 'main', file1)
+        parse_item(block_name, 'main', file2, file1, file3)
 
     for block_name in database:
         block = database.get(block_name)
